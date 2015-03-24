@@ -268,6 +268,8 @@ class FilePath:
         if lib_visit is None:
             lib_visit = {}
 
+
+
         if recursive and (level > 0) and (block_codes is not None) and (recursive_all is False):
             # prevent from expanding the
             # same datablock more then once
@@ -278,6 +280,11 @@ class FilePath:
 
             # libraries used by this blend
             block_codes_idlib = set()
+
+            # XXX, checking 'block_codes' isn't 100% reliable,
+            # but at least don't touch the same blocks twice.
+            # whereas block_codes is intended to only operate on blocks we requested.
+            lib_block_codes_existing = lib_visit.setdefault(filepath, set())
 
             # only for this block
             def _expand_codes_add_test(block, code):
@@ -291,14 +298,27 @@ class FilePath:
                         expand_codes_idlib.setdefault(block[b'lib'], set()).add(block[b'name'])
                     return False
                 else:
-                    # id_name = block[b'id.name']
+                    id_name = block[b'id.name']
 
                     # if we touched this already, don't touch again
+                    # (else we may modify the same path multiple times)
+                    #
                     # FIXME, works in some cases but not others
+                    # keep, without this we get errors
+                    # Gooseberry r668
+                    # bam pack scenes/01_island/01_meet_franck/01_01_01_A/01_01_01_A.comp.blend
+                    # gives strange errors
                     '''
                     if id_name not in block_codes:
                         return False
                     '''
+
+                    # instead just don't operate on blocks multiple times
+                    # ... rather than attempt to check on what we need or not.
+                    len_prev = len(lib_block_codes_existing)
+                    lib_block_codes_existing.add(id_name)
+                    if len_prev == len(lib_block_codes_existing):
+                        return False
 
                     len_prev = len(expand_addr_visit)
                     expand_addr_visit.add(block.addr_old)
@@ -439,7 +459,8 @@ class FilePath:
                 lib_block_codes -= lib_block_codes_existing
 
                 # don't touch them again
-                lib_block_codes_existing.update(lib_block_codes)
+                # XXX, this is now maintained in "_expand_generic_material"
+                # lib_block_codes_existing.update(lib_block_codes)
 
                 # print("looking for", lib_block_codes)
 
