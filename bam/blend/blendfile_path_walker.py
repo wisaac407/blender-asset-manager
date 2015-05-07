@@ -23,6 +23,8 @@ import os
 VERBOSE = False  # os.environ.get('BAM_VERBOSE', False)
 TIMEIT = False
 
+USE_ALEMBIC_BRANCH = True
+
 
 class C_defs:
     __slots__ = ()
@@ -52,6 +54,9 @@ class C_defs:
     PART_DRAW_OB = 7
     PART_DRAW_GR = 8
 
+    # DNA_object_types.h
+    # Object.transflag
+    OB_DUPLIGROUP = 1 << 8
 
 if VERBOSE:
     import logging
@@ -556,6 +561,11 @@ class FilePath:
         if block_external is not None:
             yield FPElem_block_path(basedir, level, (block_external, b'filename')), extra_info
 
+    if USE_ALEMBIC_BRANCH:
+        @staticmethod
+        def _from_block_CL(block, basedir, extra_info, level):
+            yield FPElem_block_path(basedir, level, (block, b'output_filepath')), extra_info
+
     @staticmethod
     def _from_block_SC(block, basedir, extra_info, level):
         block_ed = block.get_pointer(b'ed')
@@ -686,11 +696,24 @@ class ExpandID:
     def expand_OB(block):  # 'Object'
         yield from ExpandID._expand_generic_animdata(block)
         yield from ExpandID._expand_generic_material(block)
+
+        has_dup_group = False
         yield block.get_pointer(b'data')
-        yield block.get_pointer(b'dup_group')
+        if block[b'transflag'] & C_defs.OB_DUPLIGROUP:
+            dup_group = block.get_pointer(b'dup_group')
+            if dup_group is not None:
+                has_dup_group = True
+                yield dup_group
+            del dup_group
 
         yield block.get_pointer(b'proxy')
         yield block.get_pointer(b'proxy_group')
+
+        if USE_ALEMBIC_BRANCH:
+            if has_dup_group:
+                sdna_index_CacheLibrary = block.file.sdna_index_from_id.get(b'CacheLibrary')
+                if sdna_index_CacheLibrary is not None:
+                    yield block.get_pointer(b'cache_library')
 
         # 'ob->pose->chanbase[...].custom'
         block_pose = block.get_pointer(b'pose')
