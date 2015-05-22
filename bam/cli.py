@@ -1332,6 +1332,12 @@ class bam_commands:
         if output is None:
             fatal("Output path must be given when packing with: --mode=FILE")
 
+        if os.path.isdir(output):
+            if mode == "ZIP":
+                output = os.path.join(output, os.path.splitext(path)[0] + ".zip")
+            else:  # FILE
+                output = os.path.join(output, os.path.basename(path))
+
         if use_quiet:
             report = lambda msg: None
         else:
