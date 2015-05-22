@@ -1317,6 +1317,7 @@ class bam_commands:
     def pack(
             paths,
             output,
+            mode,
             all_deps=False,
             use_quiet=False,
             compress_level=-1,
@@ -1328,6 +1329,9 @@ class bam_commands:
         path = paths[0]
         del paths
 
+        if output is None:
+            fatal("Output path must be given when packing with: --mode=FILE")
+
         if use_quiet:
             report = lambda msg: None
         else:
@@ -1336,7 +1340,7 @@ class bam_commands:
         for msg in blendfile_pack.pack(
                 path.encode('utf-8'),
                 output.encode('utf-8'),
-                'ZIP',
+                mode=mode,
                 all_deps=all_deps,
                 compress_level=compress_level,
                 report=report,
@@ -1655,7 +1659,13 @@ def create_argparse_pack(subparsers):
             help="Path(s) to operate on",
             )
     subparse.add_argument(
-            "-o", "--output", dest="output", metavar='ZIP', required=False,
+            "-o", "--output", dest="output", metavar='FILE', required=False,
+            help="Output file or a directory when multiple inputs are passed",
+            )
+    subparse.add_argument(
+            "-m", "--mode", dest="mode", metavar='MODE', required=False,
+            default='ZIP',
+            choices=('ZIP', 'FILE'),
             help="Output file or a directory when multiple inputs are passed",
             )
 
@@ -1665,7 +1675,10 @@ def create_argparse_pack(subparsers):
             func=lambda args:
             bam_commands.pack(
                     args.paths,
-                    args.output or (os.path.splitext(args.paths[0])[0] + ".zip"),
+                    args.output or
+                    ((os.path.splitext(args.paths[0])[0] + ".zip")
+                     if args.mode == 'ZIP' else None),
+                    args.mode,
                     all_deps=args.all_deps,
                     use_quiet=args.use_quiet,
                     compress_level=args.compress_level),
