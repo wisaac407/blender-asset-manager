@@ -564,7 +564,7 @@ class FilePath:
     if USE_ALEMBIC_BRANCH:
         @staticmethod
         def _from_block_CL(block, basedir, extra_info, level):
-            yield FPElem_block_path(basedir, level, (block, b'output_filepath')), extra_info
+            yield FPElem_block_path(basedir, level, (block, b'input_filepath')), extra_info
 
     @staticmethod
     def _from_block_SC(block, basedir, extra_info, level):
