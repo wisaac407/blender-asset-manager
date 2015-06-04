@@ -96,8 +96,13 @@ def options_as_rst(data):
 
         ret.extend([
             INDENT + "* - " + c_name + (" ``<%s>``" % c_metavar if c_metavar else ""),
-            INDENT + "  - " + c["help"],
             ])
+
+        ret.extend([
+            (INDENT + ("  - ", "    ")[i != 0] + l) if l.strip() else ""
+            for i, l in enumerate(text_unintend(c["help"]).split("\n"))
+            ])
+
         if c_choices:
             ret.extend([
                 "",
