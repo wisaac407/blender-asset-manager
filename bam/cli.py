@@ -1321,6 +1321,7 @@ class bam_commands:
             all_deps=False,
             use_quiet=False,
             compress_level=-1,
+            filename_filter=None,
             ):
         # Local packing (don't use any project/session stuff)
         from .blend import blendfile_pack
@@ -1343,6 +1344,26 @@ class bam_commands:
         else:
             report = lambda msg: print(msg, end="")
 
+        # replace var with a pattern matching callback
+        if filename_filter:
+            # convert string into regex callback
+            # "*.txt;*.png;*.rst" --> r".*\.txt$|.*\.png$|.*\.rst$"
+            import re
+            import fnmatch
+
+            compiled_pattern = re.compile(
+                    b'|'.join(fnmatch.translate(f).encode('utf-8')
+                              for f in filename_filter.split(";") if f),
+                    re.IGNORECASE,
+                    )
+
+            def filename_filter(f):
+                return (not filename_filter.compiled_pattern.match(f))
+            filename_filter.compiled_pattern = compiled_pattern
+
+            del compiled_pattern
+            del re, fnmatch
+
         for msg in blendfile_pack.pack(
                 path.encode('utf-8'),
                 output.encode('utf-8'),
@@ -1350,6 +1371,7 @@ class bam_commands:
                 all_deps=all_deps,
                 compress_level=compress_level,
                 report=report,
+                filename_filter=filename_filter,
                 ):
             pass
 
@@ -1674,6 +1696,19 @@ def create_argparse_pack(subparsers):
             choices=('ZIP', 'FILE'),
             help="Output file or a directory when multiple inputs are passed",
             )
+    subparse.add_argument(
+            "-e", "--exclude", dest="exclude", metavar='PATTERN(S)', required=False,
+            default="",
+            help="""
+            Optionally exclude files from the pack.
+
+            Using Unix shell-style wildcards *(case insensitive)*.
+               ``--exclude="*.png"``
+
+            Multiple patterns can be passed using the  ``;`` separator.
+               ``--exclude="*.txt;*.avi;*.wav"``
+            """
+            )
 
     init_argparse_common(subparse, use_all_deps=True, use_quiet=True, use_compress_level=True)
 
@@ -1687,8 +1722,10 @@ def create_argparse_pack(subparsers):
                     args.mode,
                     all_deps=args.all_deps,
                     use_quiet=args.use_quiet,
-                    compress_level=args.compress_level),
-                    )
+                    compress_level=args.compress_level,
+                    filename_filter=args.exclude,
+                    ),
+            )
 
 
 def create_argparse_remap(subparsers):

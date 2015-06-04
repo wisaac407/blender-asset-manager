@@ -130,6 +130,10 @@ def pack(
         # {file: [(ofs, bytes), ...], ...}
         # ... where the file is the relative 'packed' location.
         binary_edits=None,
+
+        # Filename filter, allow to exclude files from the pack,
+        # function takes a string returns True if the files should be included.
+        filename_filter=None,
         ):
     """
     :param deps_remap: Store path deps_remap info as follows.
@@ -467,6 +471,8 @@ def pack(
             # in rare cases a filepath could point to a directory
             if (not os.path.exists(src)) or os.path.isdir(src):
                 yield report("  %s: %r\n" % (colorize("source missing", color='red'), src))
+            elif filename_filter and not filename_filter(src):
+                yield report("  %s: %r\n" % (colorize("exclude", color='yellow'), src))
             else:
                 yield report("  %s: %r -> %r\n" % (colorize("copying", color='blue'), src, dst))
                 shutil.copy(src, dst)
@@ -505,6 +511,8 @@ def pack(
                 # in rare cases a filepath could point to a directory
                 if (not os.path.exists(src)) or os.path.isdir(src):
                     yield report("  %s: %r\n" % (colorize("source missing", color='red'), src))
+                elif filename_filter and not filename_filter(src):
+                    yield report("  %s: %r\n" % (colorize("exclude", color='yellow'), src))
                 else:
                     yield report("  %s: %r -> <archive>\n" % (colorize("copying", color='blue'), src))
                     zip_handle.write(
