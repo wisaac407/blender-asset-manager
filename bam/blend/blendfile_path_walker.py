@@ -58,6 +58,10 @@ class C_defs:
     # Object.transflag
     OB_DUPLIGROUP = 1 << 8
 
+    if USE_ALEMBIC_BRANCH:
+        CACHE_LIBRARY_SOURCE_CACHE = 1
+
+
 if VERBOSE:
     import logging
     log_deps = logging.getLogger("path_walker")
@@ -564,7 +568,8 @@ class FilePath:
     if USE_ALEMBIC_BRANCH:
         @staticmethod
         def _from_block_CL(block, basedir, extra_info, level):
-            yield FPElem_block_path(basedir, level, (block, b'input_filepath')), extra_info
+            if block[b'source_mode'] == C_defs.CACHE_LIBRARY_SOURCE_CACHE:
+                yield fpelem_block_path(basedir, level, (block, b'input_filepath')), extra_info
 
     @staticmethod
     def _from_block_SC(block, basedir, extra_info, level):
