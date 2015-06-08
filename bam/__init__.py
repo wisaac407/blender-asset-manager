@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
-__version__ = "0.0.4.7"
+__version__ = "0.0.4.8"
 
 def main(argv=sys.argv):
     from .cli import main

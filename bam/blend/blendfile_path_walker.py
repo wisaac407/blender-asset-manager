@@ -396,62 +396,62 @@ class FilePath:
         extra_info = rootdir, os.path.basename(filepath)
 
         from bam.blend import blendfile
-        blend = blendfile.open_blend(filepath_tmp, "rb" if readonly else "r+b")
+        with blendfile.open_blend(filepath_tmp, "rb" if readonly else "r+b") as blend:
 
-        for code in blend.code_index.keys():
-            # handle library blocks as special case
-            if ((len(code) != 2) or
-                (code in {
-                    # libraries handled below
-                    b'LI',
-                    b'ID',
-                    # unneeded
-                    b'WM',
-                    b'SN',  # bScreen
-                    })):
+            for code in blend.code_index.keys():
+                # handle library blocks as special case
+                if ((len(code) != 2) or
+                    (code in {
+                        # libraries handled below
+                        b'LI',
+                        b'ID',
+                        # unneeded
+                        b'WM',
+                        b'SN',  # bScreen
+                        })):
 
-                continue
+                    continue
 
-            # if VERBOSE:
-            #     print("  Scanning", code)
+                # if VERBOSE:
+                #     print("  Scanning", code)
 
-            for block in iter_blocks_id(code):
+                for block in iter_blocks_id(code):
+                    yield from FilePath.from_block(block, basedir, extra_info, level)
+
+            # print("A:", expand_addr_visit)
+            # print("B:", block_codes)
+            if VERBOSE:
+                log_deps.info("%s%s" % (indent_str, set_as_str(expand_addr_visit)))
+
+            if recursive:
+
+                if expand_codes_idlib is None:
+                    expand_codes_idlib = {}
+                    for block in blend.find_blocks_from_code(b'ID'):
+                        expand_codes_idlib.setdefault(block[b'lib'], set()).add(block[b'name'])
+
+                # look into libraries
+                lib_all = []
+
+                for lib_id, lib_block_codes in sorted(expand_codes_idlib.items()):
+                    lib = blend.find_block_from_offset(lib_id)
+                    lib_path = lib[b'name']
+
+                    # get all data needed to read the blend files here (it will be freed!)
+                    # lib is an address at the moment, we only use as a way to group
+
+                    lib_all.append((lib_path, lib_block_codes))
+                    # import IPython; IPython.embed()
+
+                    # ensure we expand indirect linked libs
+                    if block_codes_idlib is not None:
+                        block_codes_idlib.add(lib_path)
+
+            # do this after, incase we mangle names above
+            for block in iter_blocks_idlib():
                 yield from FilePath.from_block(block, basedir, extra_info, level)
+        del blend
 
-        # print("A:", expand_addr_visit)
-        # print("B:", block_codes)
-        if VERBOSE:
-            log_deps.info("%s%s" % (indent_str, set_as_str(expand_addr_visit)))
-
-        if recursive:
-
-            if expand_codes_idlib is None:
-                expand_codes_idlib = {}
-                for block in blend.find_blocks_from_code(b'ID'):
-                    expand_codes_idlib.setdefault(block[b'lib'], set()).add(block[b'name'])
-
-            # look into libraries
-            lib_all = []
-
-            for lib_id, lib_block_codes in sorted(expand_codes_idlib.items()):
-                lib = blend.find_block_from_offset(lib_id)
-                lib_path = lib[b'name']
-
-                # get all data needed to read the blend files here (it will be freed!)
-                # lib is an address at the moment, we only use as a way to group
-
-                lib_all.append((lib_path, lib_block_codes))
-                # import IPython; IPython.embed()
-
-                # ensure we expand indirect linked libs
-                if block_codes_idlib is not None:
-                    block_codes_idlib.add(lib_path)
-
-        # do this after, incase we mangle names above
-        for block in iter_blocks_idlib():
-            yield from FilePath.from_block(block, basedir, extra_info, level)
-
-        blend.close()
 
         # ----------------
         # Handle Recursive

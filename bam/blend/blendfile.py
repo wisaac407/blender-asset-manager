@@ -145,6 +145,12 @@ class BlendFile:
         # cache (could lazy init, incase we never use?)
         self.block_from_offset = {block.addr_old: block for block in self.blocks if block.code != b'ENDB'}
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
     def find_blocks_from_code(self, code):
         assert(type(code) == bytes)
         if code not in self.code_index:
