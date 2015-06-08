@@ -1098,13 +1098,13 @@ class bam_commands:
             "file": open(temp_zip, 'rb'),
             }
 
-        r = requests.put(
-                bam_session.request_url("file"),
-                params=payload,
-                auth=(cfg["user"], cfg["password"]),
-                files=files)
+        with files["file"]:
+            r = requests.put(
+                    bam_session.request_url("file"),
+                    params=payload,
+                    auth=(cfg["user"], cfg["password"]),
+                    files=files)
 
-        files["file"].close()
         os.remove(temp_zip)
 
         try:
