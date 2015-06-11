@@ -331,6 +331,11 @@ def pack(
         path_src = blendfile_path_walker.utils.abspath(path_rel, fp.basedir)
         path_src = os.path.normpath(path_src)
 
+        if filename_filter and not filename_filter(path_src):
+            yield report("  %s:     %r\n" % (colorize("exclude", color='yellow'), path_src))
+            continue
+
+
         # apply variation (if available)
         if use_variations:
             if blendfile_levels_dict_curr:
@@ -471,8 +476,6 @@ def pack(
             # in rare cases a filepath could point to a directory
             if (not os.path.exists(src)) or os.path.isdir(src):
                 yield report("  %s: %r\n" % (colorize("source missing", color='red'), src))
-            elif filename_filter and not filename_filter(src):
-                yield report("  %s: %r\n" % (colorize("exclude", color='yellow'), src))
             else:
                 yield report("  %s: %r -> %r\n" % (colorize("copying", color='blue'), src, dst))
                 shutil.copy(src, dst)
@@ -511,8 +514,6 @@ def pack(
                 # in rare cases a filepath could point to a directory
                 if (not os.path.exists(src)) or os.path.isdir(src):
                     yield report("  %s: %r\n" % (colorize("source missing", color='red'), src))
-                elif filename_filter and not filename_filter(src):
-                    yield report("  %s: %r\n" % (colorize("exclude", color='yellow'), src))
                 else:
                     yield report("  %s: %r -> <archive>\n" % (colorize("copying", color='blue'), src))
                     zip_handle.write(
