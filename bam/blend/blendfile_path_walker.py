@@ -569,7 +569,7 @@ class FilePath:
         @staticmethod
         def _from_block_CL(block, basedir, extra_info, level):
             if block[b'source_mode'] == C_defs.CACHE_LIBRARY_SOURCE_CACHE:
-                yield fpelem_block_path(basedir, level, (block, b'input_filepath')), extra_info
+                yield FPElem_block_path(basedir, level, (block, b'input_filepath')), extra_info
 
     @staticmethod
     def _from_block_SC(block, basedir, extra_info, level):
