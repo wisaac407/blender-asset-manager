@@ -1605,6 +1605,39 @@ class BamRelativeAbsoluteTest(BamSessionTestCase):
         # ret = bam_run_as_json(["ls", "subdir/rel/path", "--json"], proj_path)
         # self.assertEqual(ret[0], ["house_rel.blend", "file"])
 
+    def test_absolute_relative_from_blendfiles_texture(self):
+        """
+        Texture on library
+        """
+
+        session_name = "mysession"
+        proj_path, session_path = self.init_session(session_name)
+
+        blendfile = os.path.join("root", "level1", "level2", "level3", "level3.blend")
+
+        import shutil
+        shutil.copytree(
+                os.path.join(CURRENT_DIR, "blends", "multi_level_link"),
+                os.path.join(session_path, "root"),
+                )
+
+        stdout, stderr = bam_run(["commit", "-m", "multi_level_link"], session_path)
+        self.assertEqual("", stderr)
+
+        shutil.rmtree(session_path)
+
+        stdout, stderr = bam_run(["checkout", blendfile, "--output", session_path], proj_path)
+        self.assertEqual("", stderr)
+
+        # finally run deps to see the paths are as we expect
+        ret = bam_run_as_json(["deps", "level3.blend", "--recursive", "--json"], session_path)
+
+        self.assertEqual(ret[0][1], "//" + os.path.join("_root", "level1_lib", "level1_lib.blend"))
+        self.assertEqual(ret[0][3], "OK")
+        self.assertEqual(ret[1][1], "//" + os.path.join("..", "..", "_root", "level1_lib", "level2_lib", "texture.png"))
+        self.assertEqual(ret[1][3], "OK")
+
+        shutil.rmtree(session_path)
 
 class BamIgnoreTest(BamSessionTestCase):
     """
