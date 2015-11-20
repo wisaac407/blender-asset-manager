@@ -318,7 +318,7 @@ class bam_session:
             paths_uuid_update=None,
             ):
 
-        sys.stdout.write("  operating on: %r\n" % blendfile)
+        sys.stdout.write("  operating on: %r\n" % blendfile_abs)
         sys.stdout.flush()
         # we don't want to read, just edit whats there.
         with open(blendfile_abs, 'rb+') as fh_blend:
@@ -355,6 +355,12 @@ class bam_session:
                 assert(not os.path.isabs(path))
                 assert(os.path.exists(os.path.join(session_rootdir, path.decode('utf-8'))))
 
+        with open(os.path.join(session_rootdir, ".bam_paths_remap.json")) as fp:
+            paths_remap = json.load(fp)
+            paths_remap_relbase = paths_remap.get(".", "")
+            paths_remap_reverse = {v: k for k, v in paths_remap.items()}
+            del paths_remap
+
         with open(os.path.join(session_rootdir, ".bam_paths_edit.data"), 'rb') as fh:
             import pickle
             binary_edits_all = pickle.load(fh)
@@ -364,7 +370,13 @@ class bam_session:
                     if paths is not None and blendfile not in paths:
                         continue
 
-                    blendfile_abs = os.path.join(session_rootdir, blendfile.decode('utf-8'))
+                    # get the absolute path as it is in the main repo
+                    # then remap back to our local checkout
+                    blendfile_abs_remote = os.path.normpath(os.path.join(paths_remap_relbase, blendfile.decode('utf-8')))
+                    blendfile_abs = os.path.join(session_rootdir, paths_remap_reverse[blendfile_abs_remote])
+
+                    print(blendfile_abs)
+
                     bam_session.binary_edits_apply_single(
                             blendfile_abs,
                             blendfile,
@@ -378,7 +390,6 @@ class bam_session:
             # freshen the UUID's based on the replayed binary_edits
             from bam.utils.system import write_json_to_file
             paths_uuid = bam_session.load_paths_uuid(session_rootdir)
-            assert(set(paths_uuid_update.keys()).issubset(set(paths_uuid.keys())))
             paths_uuid.update(paths_uuid_update)
             write_json_to_file(os.path.join(session_rootdir, ".bam_paths_uuid.json"), paths_uuid)
             del write_json_to_file
