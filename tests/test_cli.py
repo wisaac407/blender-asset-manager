@@ -1677,8 +1677,11 @@ class BamRelativeAbsoluteTest(BamSessionTestCase):
         self.assertEqual("", stderr)
 
         # open file to check if it's ok
+        import re
         stdout, stderr, returncode = blendfile_open (blendfile)
-        self.assertEqual(0, returncode)
+        pattern = re.compile(b"Unable to open")
+        able_to_open = pattern.search(stdout) == False
+        self.assertEqual(True, able_to_open)
 
         shutil.rmtree(session_path)
 
