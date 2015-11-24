@@ -1678,9 +1678,9 @@ class BamRelativeAbsoluteTest(BamSessionTestCase):
 
         # open file to check if it's ok
         import re
-        stdout, stderr, returncode = blendfile_open (blendfile)
-        pattern = re.compile(b"Unable to open")
-        able_to_open = pattern.search(stdout) == False
+        stdout, stderr, returncode = blendfile_open (os.path.join(session_path, "level3.blend"))
+        pattern = re.compile(b", incomplete")
+        able_to_open = pattern.search(stdout) == None
         self.assertEqual(True, able_to_open)
 
         shutil.rmtree(session_path)
