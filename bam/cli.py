@@ -322,7 +322,7 @@ class bam_session:
         sys.stdout.flush()
         # we don't want to read, just edit whats there.
         from bam.blend import blendfile as blendfile_mod
-        with blendfile_mod.open_blend(blendfile_abs, 'rb+').handle as fh_blend:
+        with blendfile_mod.open_blend(blendfile_abs, 'rb+') as fh_blend:
             for ofs, data in binary_edits:
                 # sys.stdout.write("\n%r\n" % data)
                 sys.stdout.flush()

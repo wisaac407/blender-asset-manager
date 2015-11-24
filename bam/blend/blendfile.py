@@ -163,6 +163,13 @@ class BlendFile:
         assert(type(offset) is int)
         return self.block_from_offset.get(offset)
 
+    def seek(self, ofs):
+        self.handle.seek(ofs)
+
+    def write(self, data):
+        self.handle.write(data)
+        self.is_modified = True
+
     def close(self):
         """
         Close the blend file
