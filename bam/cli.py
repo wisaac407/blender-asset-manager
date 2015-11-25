@@ -377,8 +377,6 @@ class bam_session:
                     blendfile_abs_remote = os.path.normpath(os.path.join(paths_remap_relbase, blendfile.decode('utf-8')))
                     blendfile_abs = os.path.join(session_rootdir, paths_remap_reverse[blendfile_abs_remote])
 
-                    print(blendfile_abs)
-
                     bam_session.binary_edits_apply_single(
                             blendfile_abs,
                             blendfile,
@@ -614,7 +612,6 @@ class bam_commands:
             paths_remap = json.load(fp)
 
             paths_uuid = bam_session.load_paths_uuid(session_rootdir)
-            print(paths_uuid)
 
             for f_src, f_dst in paths_remap.items():
                 if f_src == ".":
