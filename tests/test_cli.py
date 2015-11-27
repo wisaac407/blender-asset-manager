@@ -1637,6 +1637,12 @@ class BamRelativeAbsoluteTest(BamSessionTestCase):
         self.assertEqual(ret[1][1], "//" + os.path.join("..", "..", "_root", "level1_lib", "level2_lib", "texture.png"))
         self.assertEqual(ret[1][3], "OK")
 
+        import re
+        stdout, stderr = bam_run(["status"], session_path)
+        pattern = re.compile("D:|M:")
+        changes = pattern.search(stdout) != None
+        self.assertEqual(False, changes)
+
         shutil.rmtree(session_path)
 
 class BamIgnoreTest(BamSessionTestCase):
