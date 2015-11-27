@@ -1629,6 +1629,14 @@ class BamRelativeAbsoluteTest(BamSessionTestCase):
         stdout, stderr = bam_run(["checkout", blendfile, "--output", session_path], proj_path)
         self.assertEqual("", stderr)
 
+        # finally run deps to see the paths are as we expect
+        ret = bam_run_as_json(["deps", "level3.blend", "--recursive", "--json"], session_path)
+
+        self.assertEqual(ret[0][1], "//" + os.path.join("_root", "level1_lib", "level1_lib.blend"))
+        self.assertEqual(ret[0][3], "OK")
+        self.assertEqual(ret[1][1], "//" + os.path.join("..", "..", "_root", "level1_lib", "level2_lib", "texture.png"))
+        self.assertEqual(ret[1][3], "OK")
+
         shutil.rmtree(session_path)
 
 class BamIgnoreTest(BamSessionTestCase):
