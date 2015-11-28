@@ -315,6 +315,7 @@ class bam_session:
             blendfile_abs,  # str
             blendfile,  # bytes
             binary_edits,
+            session_rootdir,
             paths_uuid_update=None,
             ):
 
@@ -337,7 +338,8 @@ class bam_session:
             # update hash!
             # we could do later, but the file is fresh in cache, so do now
             from bam.utils.system import uuid_from_file
-            paths_uuid_update[blendfile.decode('utf-8')] = uuid_from_file(blendfile_abs)
+            f_rel = os.path.relpath(blendfile_abs, session_rootdir)
+            paths_uuid_update[f_rel] = uuid_from_file(blendfile_abs)
             del uuid_from_file
 
     @staticmethod
@@ -381,6 +383,7 @@ class bam_session:
                             blendfile_abs,
                             blendfile,
                             binary_edits,
+                            session_rootdir,
                             paths_uuid_update,
                             )
             del pickle
