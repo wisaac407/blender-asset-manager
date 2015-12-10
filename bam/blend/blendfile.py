@@ -293,6 +293,7 @@ class BlendFileBlock:
         "sdna_index",
         "count",
         "file_offset",
+        "user_data",
         )
 
     def __str__(self):
@@ -310,6 +311,7 @@ class BlendFileBlock:
         OLDBLOCK = struct.Struct(b'4sI')
 
         self.file = bfile
+        self.user_data = None
 
         data = handle.read(bfile.block_header_struct.size)
         # header size can be 8, 20, or 24 bytes long
@@ -464,10 +466,18 @@ class BlendFileBlock:
         return (f.dna_name.name_only for f in self.dna_type.fields)
 
     def values(self):
-        return (self[k] for k in self.keys())
+        for k in self.keys():
+            try:
+                yield self[k]
+            except NotImplementedError as err:
+                yield ...
 
     def items(self):
-        return ((k, self[k]) for k in self.keys())
+        for k in self.keys():
+            try:
+                yield (k, self[k])
+            except NotImplementedError as err:
+                yield (k, ...)
 
 
 # -----------------------------------------------------------------------------
@@ -624,12 +634,14 @@ class DNAStruct:
         "size",
         "fields",
         "field_from_name",
+        "user_data",
         )
 
     def __init__(self, dna_type_id):
         self.dna_type_id = dna_type_id
         self.fields = []
         self.field_from_name = {}
+        self.user_data = None
 
     def field_from_path(self, header, handle, path):
         assert(type(path) == bytes)
@@ -697,7 +709,7 @@ class DNAStruct:
                 else:
                     return DNA_IO.read_bytes(handle, dna_name.array_size)
         else:
-            raise NotImplementedError("%r exists but isn't pointer, can't resolve field %r" % (path, dna_name.name))
+            raise NotImplementedError("%r exists but isn't pointer, can't resolve field %r" % (path, dna_name.name_only))
 
     def field_set(self, header, handle, path, value):
         assert(type(path) == bytes)
