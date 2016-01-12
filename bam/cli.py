@@ -1387,6 +1387,63 @@ class bam_commands:
             pass
 
     @staticmethod
+    def copy(
+            paths,
+            output,
+            base,
+            all_deps=False,
+            use_quiet=False,
+            filename_filter=None,
+            ):
+        # Local packing (don't use any project/session stuff)
+        from .blend import blendfile_copy
+        from bam.utils.system import is_subdir
+
+        paths = [os.path.abspath(path) for path in paths]
+        base = os.path.abspath(base)
+        output = os.path.abspath(output)
+
+        # check all blends are in the base path
+        for path in paths:
+            if not is_subdir(path, base):
+                fatal("Input blend file %r is not a sub directory of %r" % (path, base))
+
+        if use_quiet:
+            report = lambda msg: None
+        else:
+            report = lambda msg: print(msg, end="")
+
+        # replace var with a pattern matching callback
+        if filename_filter:
+            # convert string into regex callback
+            # "*.txt;*.png;*.rst" --> r".*\.txt$|.*\.png$|.*\.rst$"
+            import re
+            import fnmatch
+
+            compiled_pattern = re.compile(
+                    b'|'.join(fnmatch.translate(f).encode('utf-8')
+                              for f in filename_filter.split(";") if f),
+                    re.IGNORECASE,
+                    )
+
+            def filename_filter(f):
+                return (not filename_filter.compiled_pattern.match(f))
+            filename_filter.compiled_pattern = compiled_pattern
+
+            del compiled_pattern
+            del re, fnmatch
+
+        for msg in blendfile_copy.copy_paths(
+                [path.encode('utf-8') for path in paths],
+                output.encode('utf-8'),
+                base.encode('utf-8'),
+                all_deps=all_deps,
+                report=report,
+                filename_filter=filename_filter,
+                ):
+            pass
+
+    @staticmethod
     def remap_start(
             paths,
             use_json=False,
@@ -1466,6 +1523,7 @@ def init_argparse_common(
         use_all_deps=False,
         use_quiet=False,
         use_compress_level=False,
+        use_exclude=False,
         ):
     import argparse
 
@@ -1494,6 +1552,20 @@ def init_argparse_common(
                 action=ChoiceToZlibLevel,
                 choices=('default', 'fast', 'best', 'store'),
                 help="Compression level for resulting archive",
+                )
+    if use_exclude:
+        subparse.add_argument(
+                "-e", "--exclude", dest="exclude", metavar='PATTERN(S)', required=False,
+                default="",
+                help="""
+                Optionally exclude files from the pack.
+
+                Using Unix shell-style wildcards *(case insensitive)*.
+                ``--exclude="*.png"``
+
+                Multiple patterns can be passed using the  ``;`` separator.
+                ``--exclude="*.txt;*.avi;*.wav"``
+                """
                 )
 
 
@@ -1707,21 +1779,8 @@ def create_argparse_pack(subparsers):
             choices=('ZIP', 'FILE'),
             help="Output file or a directory when multiple inputs are passed",
             )
-    subparse.add_argument(
-            "-e", "--exclude", dest="exclude", metavar='PATTERN(S)', required=False,
-            default="",
-            help="""
-            Optionally exclude files from the pack.
 
-            Using Unix shell-style wildcards *(case insensitive)*.
-               ``--exclude="*.png"``
-
-            Multiple patterns can be passed using the  ``;`` separator.
-               ``--exclude="*.txt;*.avi;*.wav"``
-            """
-            )
-
-    init_argparse_common(subparse, use_all_deps=True, use_quiet=True, use_compress_level=True)
+    init_argparse_common(subparse, use_all_deps=True, use_quiet=True, use_compress_level=True, use_exclude=True)
 
     subparse.set_defaults(
             func=lambda args:
@@ -1734,6 +1793,54 @@ def create_argparse_pack(subparsers):
                     all_deps=args.all_deps,
                     use_quiet=args.use_quiet,
                     compress_level=args.compress_level,
+                    filename_filter=args.exclude,
+                    ),
+            )
+
+
+def create_argparse_copy(subparsers):
+    import argparse
+    subparse = subparsers.add_parser(
+            "copy", aliases=("cp",),
+            help="Copy blend file(s) and their dependencies to a new location (maintaining the directory structure).",
+            description=
+    """
+    The line below will copy ``scene.blend`` to ``/destination/to/scene.blend``.
+
+    .. code-block:: sh
+
+       bam copy /path/to/scene.blend --base=/path --output=/destination
+
+    .. code-block:: sh
+
+       # you can also copy multiple files
+       bam copy /path/to/scene.blend /path/other/file.blend --base=/path --output /other/destination
+    """,
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            )
+    subparse.add_argument(
+            dest="paths", nargs="+",
+            help="Path(s) to blend files to operate on",
+            )
+    subparse.add_argument(
+            "-o", "--output", dest="output", metavar='DIR', required=True,
+            help="Output directory where where files will be copied to",
+            )
+    subparse.add_argument(
+            "-b", "--base", dest="base", metavar='DIR', required=True,
+            help="Base directory for input paths (files outside this path will be omitted)",
+            )
+
+    init_argparse_common(subparse, use_all_deps=True, use_quiet=True, use_exclude=True)
+
+    subparse.set_defaults(
+            func=lambda args:
+            bam_commands.copy(
+                    args.paths,
+                    args.output,
+                    args.base,
+                    all_deps=args.all_deps,
+                    use_quiet=args.use_quiet,
                     filename_filter=args.exclude,
                     ),
             )
@@ -1874,6 +1981,7 @@ def create_argparse():
     # non-bam project commands
     create_argparse_deps(subparsers)
     create_argparse_pack(subparsers)
+    create_argparse_copy(subparsers)
     create_argparse_remap(subparsers)
 
     return parser
