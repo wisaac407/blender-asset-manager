@@ -130,20 +130,12 @@ def is_subdir(path, directory):
     Returns true if *path* in a subdirectory of *directory*.
     """
     import os
-    from os.path import normpath, normcase
+    from os.path import normpath, normcase, sep
     path = normpath(normcase(path))
     directory = normpath(normcase(directory))
-
-    if isinstance(directory, bytes):
-        sep_i = ord(os.sep)
-        sep = os.sep.encode('ascii')
-    else:
-        sep_i = os.sep
-        sep = os.sep
-
-    directory = directory.rstrip(sep)
     if len(path) > len(directory):
-        if path.startswith(directory):
-            return (path[len(directory)] == sep_i)
+        sep = sep.encode('ascii') if isinstance(directory, bytes) else sep
+        if path.startswith(directory.rstrip(sep) + sep):
+            return True
     return False
 
