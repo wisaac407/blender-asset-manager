@@ -416,18 +416,25 @@ class BlendFileBlock:
                            use_nil=True, use_str=True,
                            base_index=0,
                            ):
-        path_full = path_root + b"." + path if path_root else path
+        if path_root:
+            path_full = (
+                    (path_root if type(path_root) is tuple else (path_root, )) +
+                    (path if type(path) is tuple else (path, )))
+        else:
+            path_full = path
+
         try:
             yield (path_full, self.get(path_full, default, sdna_index_refine, use_nil, use_str, base_index))
-        except NotImplementedError as err:
-            msg, dna_name, dna_type = err.args
+        except NotImplementedError as ex:
+            msg, dna_name, dna_type = ex.args
             struct_index = self.file.sdna_index_from_id.get(dna_type.dna_type_id, None)
             if struct_index is None:
                 yield (path_full, "<%s>" % dna_type.dna_type_id.decode('ascii'))
             else:
                 struct = self.file.structs[struct_index]
                 for f in struct.fields:
-                    yield from self.get_recursive_iter(f.dna_name.name_only, path_full, default, None, use_nil, use_str, 0)
+                    yield from self.get_recursive_iter(
+                            f.dna_name.name_only, path_full, default, None, use_nil, use_str, 0)
 
     def items_recursive_iter(self):
         for k in self.keys():
@@ -442,7 +449,8 @@ class BlendFileBlock:
         #      algo either. But for now does the job!
         import zlib
         def _is_pointer(self, k):
-            return self.file.structs[self.sdna_index].field_from_path(self.file.header, self.file.handle, k).dna_name.is_pointer
+            return self.file.structs[self.sdna_index].field_from_path(
+                    self.file.header, self.file.handle, k).dna_name.is_pointer
 
         hsh = 1
         for k, v in self.items_recursive_iter():
@@ -485,7 +493,6 @@ class BlendFileBlock:
 
         assert(self.file.structs[sdna_index_refine].field_from_path(
                 self.file.header, self.file.handle, path).dna_name.is_pointer)
-
         if result != 0:
             # possible (but unlikely)
             # that this fails and returns None
@@ -688,18 +695,27 @@ class DNAStruct:
         self.user_data = None
 
     def field_from_path(self, header, handle, path):
-        assert(type(path) == bytes)
-        # support 'id.name'
-        name, _, name_tail = path.partition(b'.')
+        """
+        Support lookups as bytes or a tuple of bytes and optional index.
 
-        # support 'mtex[1].tex'
-        # note, multi-dimensional arrays not supported
-        # FIXME: 'mtex[1]' works, but not 'mtex[1].tex', why is this???
-        if name.endswith(b']'):
-            name, _, index = name[:-1].partition(b'[')
-            index = int(index)
+        C style 'id.name'   -->  (b'id', b'name')
+        C style 'array[4]'  -->  ('array', 4)
+        """
+        if type(path) is tuple:
+            name = path[0]
+            if len(path) >= 2 and type(path[1]) is not bytes:
+                name_tail = path[2:]
+                index = path[1]
+                assert(type(index) is int)
+            else:
+                name_tail = path[1:]
+                index = 0
         else:
+            name = path
+            name_tail = None
             index = 0
+
+        assert(type(name) is bytes)
 
         field = self.field_from_name.get(name)
 
@@ -712,7 +728,7 @@ class DNAStruct:
                     index_offset = field.dna_type.size * index
                 assert(index_offset < field.dna_size)
                 handle.seek(index_offset, os.SEEK_CUR)
-            if name_tail == b'':
+            if not name_tail:  # None or ()
                 return field
             else:
                 return field.dna_type.field_from_path(header, handle, name_tail)
@@ -721,14 +737,13 @@ class DNAStruct:
                   default=...,
                   use_nil=True, use_str=True,
                   ):
-        assert(type(path) == bytes)
-
         field = self.field_from_path(header, handle, path)
         if field is None:
             if default is not ...:
                 return default
             else:
-                raise KeyError("%r not found in %r (%r)" % (path, [f.dna_name.name_only for f in self.fields], self.dna_type_id))
+                raise KeyError("%r not found in %r (%r)" %
+                        (path, [f.dna_name.name_only for f in self.fields], self.dna_type_id))
 
         dna_type = field.dna_type
         dna_name = field.dna_name
@@ -764,7 +779,7 @@ class DNAStruct:
                     return DNA_IO.read_bytes(handle, dna_name.array_size)
         else:
             raise NotImplementedError("%r exists but isn't pointer, can't resolve field %r" %
-                    (path, dna_name.name_only))
+                    (path, dna_name.name_only), dna_name, dna_type)
 
     def field_set(self, header, handle, path, value):
         assert(type(path) == bytes)

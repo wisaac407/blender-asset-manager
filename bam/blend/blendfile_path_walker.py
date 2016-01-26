@@ -307,7 +307,7 @@ class FilePath:
                         expand_codes_idlib.setdefault(block[b'lib'], set()).add(block[b'name'])
                     return False
                 else:
-                    id_name = block[b'id.name']
+                    id_name = block[b'id', b'name']
 
                     # if we touched this already, don't touch again
                     # (else we may modify the same path multiple times)
@@ -374,7 +374,7 @@ class FilePath:
         else:
             def iter_blocks_id(code):
                 for block in blend.find_blocks_from_code(code):
-                    if block[b'id.name'] in block_codes:
+                    if block[b'id', b'name'] in block_codes:
                         yield from block_expand(block, code)
 
             if block_codes_idlib is not None:
@@ -517,8 +517,10 @@ class FilePath:
     @staticmethod
     def _from_block_OB(block, basedir, extra_info, level):
         # 'ob->modifiers[...].filepath'
-        for block_mod in bf_utils.iter_ListBase(block.get_pointer(b'modifiers.first'), next_item=b'modifier.next'):
-            item_md_type = block_mod[b'modifier.type']
+        for block_mod in bf_utils.iter_ListBase(
+                block.get_pointer((b'modifiers', b'first')),
+                next_item=(b'modifier', b'next')):
+            item_md_type = block_mod[b'modifier', b'type']
             if item_md_type == C_defs.eModifierType_MeshCache:
                 yield FPElem_block_path(basedir, level, (block_mod, b'filepath')), extra_info
 
@@ -558,9 +560,9 @@ class FilePath:
 
     @staticmethod
     def _from_block_ME(block, basedir, extra_info, level):
-        block_external = block.get_pointer(b'ldata.external', None)
+        block_external = block.get_pointer((b'ldata', b'external'), None)
         if block_external is None:
-            block_external = block.get_pointer(b'fdata.external', None)
+            block_external = block.get_pointer((b'fdata', b'external'), None)
 
         if block_external is not None:
             yield FPElem_block_path(basedir, level, (block_external, b'filename')), extra_info
@@ -585,7 +587,7 @@ class FilePath:
                         pass
                     elif item_type == C_defs.SEQ_TYPE_META:
                         yield from seqbase(bf_utils.iter_ListBase(
-                                item.get_pointer(b'seqbase.first', sdna_index_refine=sdna_index_Sequence)))
+                                item.get_pointer((b'seqbase', b'first'), sdna_index_refine=sdna_index_Sequence)))
                     else:
                         item_strip = item.get_pointer(b'strip', sdna_index_refine=sdna_index_Sequence)
                         if item_strip is None:  # unlikely!
@@ -599,7 +601,7 @@ class FilePath:
                             yield FPElem_sequence_single(
                                     basedir, level, (item_strip, b'dir', item_stripdata, b'name')), extra_info
 
-            yield from seqbase(bf_utils.iter_ListBase(block_ed.get_pointer(b'seqbase.first')))
+            yield from seqbase(bf_utils.iter_ListBase(block_ed.get_pointer((b'seqbase', b'first'))))
 
     @staticmethod
     def _from_block_LI(block, basedir, extra_info, level):
@@ -668,8 +670,7 @@ class ExpandID:
         array_len = field.dna_size // block.file.header.pointer_size
 
         for i in range(array_len):
-            path = ('mtex[%d]' % i).encode('ascii')
-            item = block.get_pointer(path)
+            item = block.get_pointer((b'mtex', i))
             if item:
                 yield item.get_pointer(b'tex')
                 yield item.get_pointer(b'object')
@@ -679,7 +680,7 @@ class ExpandID:
         assert(block.dna_type.dna_type_id == b'bNodeTree')
 
         sdna_index_bNode = block.file.sdna_index_from_id[b'bNode']
-        for item in bf_utils.iter_ListBase(block.get_pointer(b'nodes.first')):
+        for item in bf_utils.iter_ListBase(block.get_pointer((b'nodes', b'first'))):
             item_type = item.get(b'type', sdna_index_refine=sdna_index_bNode)
 
             if item_type != 221:  # CMP_NODE_R_LAYERS
@@ -725,7 +726,7 @@ class ExpandID:
         if block_pose is not None:
             assert(block_pose.dna_type.dna_type_id == b'bPose')
             sdna_index_bPoseChannel = block_pose.file.sdna_index_from_id[b'bPoseChannel']
-            for item in bf_utils.iter_ListBase(block_pose.get_pointer(b'chanbase.first')):
+            for item in bf_utils.iter_ListBase(block_pose.get_pointer((b'chanbase', b'first'))):
                 item_custom = item.get_pointer(b'custom', sdna_index_refine=sdna_index_bPoseChannel)
                 if item_custom is not None:
                     yield item_custom
@@ -733,7 +734,8 @@ class ExpandID:
         # 'ob->particlesystem[...].part'
         sdna_index_ParticleSystem = block.file.sdna_index_from_id.get(b'ParticleSystem')
         if sdna_index_ParticleSystem is not None:
-            for item in bf_utils.iter_ListBase(block.get_pointer(b'particlesystem.first')):
+            for item in bf_utils.iter_ListBase(
+                    block.get_pointer((b'particlesystem', b'first'))):
                 item_part = item.get_pointer(b'part', sdna_index_refine=sdna_index_ParticleSystem)
                 if item_part is not None:
                     yield item_part
@@ -820,7 +822,7 @@ class ExpandID:
         yield block.get_pointer(b'clip', None)
 
         sdna_index_Base = block.file.sdna_index_from_id[b'Base']
-        for item in bf_utils.iter_ListBase(block.get_pointer(b'base.first')):
+        for item in bf_utils.iter_ListBase(block.get_pointer((b'base', b'first'))):
             yield item.get_pointer(b'object', sdna_index_refine=sdna_index_Base)
 
         block_ed = block.get_pointer(b'ed')
@@ -834,7 +836,8 @@ class ExpandID:
                     if item_type >= C_defs.SEQ_TYPE_EFFECT:
                         pass
                     elif item_type == C_defs.SEQ_TYPE_META:
-                        yield from seqbase(bf_utils.iter_ListBase(item.get_pointer(b'seqbase.first', sdna_index_refine=sdna_index_Sequence)))
+                        yield from seqbase(bf_utils.iter_ListBase(
+                                item.get_pointer((b'seqbase' b'first'), sdna_index_refine=sdna_index_Sequence)))
                     else:
                         if item_type == C_defs.SEQ_TYPE_SCENE:
                             yield item.get_pointer(b'scene')
@@ -845,12 +848,13 @@ class ExpandID:
                         elif item_type == C_defs.SEQ_TYPE_SOUND_RAM:
                             yield item.get_pointer(b'sound')
 
-            yield from seqbase(bf_utils.iter_ListBase(block_ed.get_pointer(b'seqbase.first')))
+            yield from seqbase(bf_utils.iter_ListBase(
+                    block_ed.get_pointer((b'seqbase', b'first'))))
 
     @staticmethod
     def expand_GR(block):  # 'Group'
         sdna_index_GroupObject = block.file.sdna_index_from_id[b'GroupObject']
-        for item in bf_utils.iter_ListBase(block.get_pointer(b'gobject.first')):
+        for item in bf_utils.iter_ListBase(block.get_pointer((b'gobject', b'first'))):
             yield item.get_pointer(b'ob', sdna_index_refine=sdna_index_GroupObject)
 
     # expand_GR --> {b'GR': expand_GR, ...}
