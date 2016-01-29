@@ -469,6 +469,7 @@ class FileAPI(Resource):
                         all_deps=all_deps,
                         report=report,
                         blendfile_src_dir_fakeroot=blendfile_src_dir_fakeroot.encode('utf-8'),
+                        use_variations=True,
                         readonly=True,
                         binary_edits=binary_edits,
                         )

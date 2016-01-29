@@ -16,6 +16,9 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 
+def colorize_dummy(msg, color=None):
+    return msg
+
 _USE_COLOR = True
 if _USE_COLOR:
     color_codes = {
@@ -41,8 +44,7 @@ if _USE_COLOR:
     def colorize(msg, color=None):
         return (color_codes[color] + msg + color_codes['normal'])
 else:
-    def colorize(msg, color=None):
-        return msg
+    colorize = colorize_dummy
 
 
 def uuid_from_file(fn, block_size=1 << 20):

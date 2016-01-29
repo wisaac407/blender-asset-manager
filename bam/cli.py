@@ -1382,6 +1382,7 @@ class bam_commands:
                 all_deps=all_deps,
                 compress_level=compress_level,
                 report=report,
+                use_variations=True,
                 filename_filter=filename_filter,
                 ):
             pass

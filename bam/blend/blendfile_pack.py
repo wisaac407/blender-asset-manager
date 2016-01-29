@@ -99,7 +99,10 @@ def pack(
         #    os.path.dirname(blendfile_src)
         # but in some cases we wan't to use a path higher up.
         # base_dir_src,
-        blendfile_src, blendfile_dst, mode='FILE',
+        blendfile_src, blendfile_dst,
+        mode='ZIP',
+        # optionally pass in the temp dir
+        base_dir_dst_temp=None,
         paths_remap_relbase=None,
         deps_remap=None, paths_remap=None, paths_uuid=None,
         # load every libs dep, not just used deps.
@@ -121,7 +124,7 @@ def pack(
         blendfile_src_dir_fakeroot=None,
 
         # Read variations from json files.
-        use_variations=True,
+        use_variations=False,
 
         # do _everything_ except to write the paths.
         # useful if we want to calculate deps to remap but postpone applying them.
@@ -153,8 +156,12 @@ def pack(
     #   also prevents cyclic loops from crashing.
 
     import os
+    import sys
 
-    from bam.utils.system import colorize
+    if sys.stdout.isatty():
+        from bam.utils.system import colorize
+    else:
+        from bam.utils.system import colorize_dummy as colorize
 
     # in case this is directly from the command line or user-input
     blendfile_src = os.path.normpath(os.path.abspath(blendfile_src))
@@ -174,7 +181,8 @@ def pack(
     TEMP_SUFFIX = b'@'
 
     if report is None:
-        report = lambda msg: msg
+        def report(msg):
+            return msg
 
     yield report("%s: %r...\n" % (colorize("\nscanning deps", color='bright_green'), blendfile_src))
 
@@ -187,10 +195,11 @@ def pack(
     # _dbg(blendfile_src)
     # _dbg(blendfile_dst)
 
-    if mode == 'ZIP':
-        base_dir_dst_temp = os.path.join(base_dir_dst, b'__blendfile_temp__')
-    else:
-        base_dir_dst_temp = os.path.join(base_dir_dst, b'__blendfile_pack__')
+    if base_dir_dst_temp is None:
+        if mode == 'ZIP':
+            base_dir_dst_temp = os.path.join(base_dir_dst, b'__blendfile_temp__')
+        else:
+            base_dir_dst_temp = os.path.join(base_dir_dst, b'__blendfile_pack__')
 
     def temp_remap_cb(filepath, rootdir):
         """
@@ -335,7 +344,6 @@ def pack(
             yield report("  %s:     %r\n" % (colorize("exclude", color='yellow'), path_src))
             continue
 
-
         # apply variation (if available)
         if use_variations:
             if blendfile_levels_dict_curr:
@@ -381,8 +389,8 @@ def pack(
                 _dst_dir = os.path.dirname(path_dst)
                 path_copy_files.update(
                         {(os.path.join(_src_dir, f), os.path.join(_dst_dir, f))
-                        for f in file_list
-                        })
+                         for f in file_list
+                         })
                 del _src_dir, _dst_dir
 
         if deps_remap is not None:
@@ -414,9 +422,11 @@ def pack(
     if paths_remap is not None:
 
         if paths_remap_relbase is not None:
-            relbase = lambda fn: os.path.relpath(fn, paths_remap_relbase)
+            def relbase(fn):
+                return os.path.relpath(fn, paths_remap_relbase)
         else:
-            relbase = lambda fn: fn
+            def relbase(fn):
+                return fn
 
         for src, dst in path_copy_files:
             # TODO. relative to project-basepath
@@ -493,7 +503,8 @@ def pack(
         zlib.Z_DEFAULT_COMPRESSION = compress_level
         _compress_mode = zipfile.ZIP_STORED if (compress_level == 0) else zipfile.ZIP_DEFLATED
         if _compress_mode == zipfile.ZIP_STORED:
-            is_compressed_filetype = lambda fn: False
+            def is_compressed_filetype(fn):
+                return False
         else:
             from bam.utils.system import is_compressed_filetype
 
@@ -554,12 +565,16 @@ def create_argparse():
             )
     parser.add_argument(
             "-m", "--mode", dest="mode", metavar='MODE', required=False,
-            choices=('FILE', 'ZIP'), default='FILE',
+            choices=('FILE', 'ZIP'), default='ZIP',
             help="Output file or a directory when multiple inputs are passed",
             )
     parser.add_argument(
             "-q", "--quiet", dest="use_quiet", action='store_true', required=False,
             help="Suppress status output",
+            )
+    parser.add_argument(
+            "-t", "--temp", dest="temp_path", metavar='DIR', required=False,
+            help="Temporary directory to use",
             )
 
     return parser
@@ -572,14 +587,20 @@ def main():
     args = parser.parse_args(sys.argv[1:])
 
     if args.use_quiet:
-        report = lambda msg: None
+        def report(msg):
+            pass
     else:
-        report = lambda msg: print(msg, end="")
+        def report(msg):
+            sys.stdout.write(msg)
+            sys.stdout.flush()
 
     for msg in pack(
             args.path_src.encode('utf-8'),
             args.path_dst.encode('utf-8'),
             mode=args.mode,
+            base_dir_dst_temp=(
+                args.temp_path.encode('utf-8')
+                if args.temp_path else None),
             ):
         report(msg)
 
