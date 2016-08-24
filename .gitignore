@@ -1,6 +1,4 @@
 *.pyc
-*.sublime-project
-*.sublime-workspace
 *.db
 *.blend[0-9]*
 
