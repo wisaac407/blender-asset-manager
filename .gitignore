@@ -4,7 +4,7 @@
 
 webservice/venv/
 docs/venv/
-docs/build/
+/doc/build/
 client/venv/
 
 client/client/config.json
@@ -12,3 +12,6 @@ webservice/bam/config.py
 
 # generated
 doc/source/reference/index.rst
+/*.egg-info/
+/.cache/
+__pycache__
