@@ -1329,8 +1329,10 @@ class bam_commands:
             paths,
             output,
             mode,
+            repository_base_path=None,
             all_deps=False,
             use_quiet=False,
+            warn_remap_externals=False,
             compress_level=-1,
             filename_filter=None,
             ):
@@ -1380,8 +1382,10 @@ class bam_commands:
                 output.encode('utf-8'),
                 mode=mode,
                 all_deps=all_deps,
+                repository_base_path=repository_base_path.encode('utf-8'),
                 compress_level=compress_level,
                 report=report,
+                warn_remap_externals=warn_remap_externals,
                 use_variations=True,
                 filename_filter=filename_filter,
                 ):
@@ -1763,6 +1767,15 @@ def create_argparse_pack(subparsers):
 
        # pack a blend with maximum compression for online downloads
        bam pack /path/to/scene.blend --output my_scene.zip --compress=best
+
+    You may also pack a .blend while keeping your whole repository hierarchy by passing
+    the path to the top directory of the repository, and ask to be warned about dependencies paths
+    outside of that base path:
+
+    .. code-block:: sh
+
+       bam pack --repo="/path/to/repo" --warn-external /path/to/repo/path/to/scene.blend
+
     """,
             formatter_class=argparse.RawDescriptionHelpFormatter,
             )
@@ -1780,6 +1793,15 @@ def create_argparse_pack(subparsers):
             choices=('ZIP', 'FILE'),
             help="Output file or a directory when multiple inputs are passed",
             )
+    subparse.add_argument(
+            "--repo", dest="repository_base_path", metavar='DIR', required=False,
+            help="Base directory from which you want to keep existing hierarchy (usually to repository directory),"
+                 "will default to packed blend file's directory if not specified",
+            )
+    subparse.add_argument(
+            "--warn-external", dest="warn_remap_externals", action='store_true',
+            help="Warn for every dependency outside of given repository base path",
+            )
 
     init_argparse_common(subparse, use_all_deps=True, use_quiet=True, use_compress_level=True, use_exclude=True)
 
@@ -1791,8 +1813,10 @@ def create_argparse_pack(subparsers):
                     ((os.path.splitext(args.paths[0])[0] + ".zip")
                      if args.mode == 'ZIP' else None),
                     args.mode,
+                    repository_base_path=args.repository_base_path or None,
                     all_deps=args.all_deps,
                     use_quiet=args.use_quiet,
+                    warn_remap_externals=args.warn_remap_externals,
                     compress_level=args.compress_level,
                     filename_filter=args.exclude,
                     ),

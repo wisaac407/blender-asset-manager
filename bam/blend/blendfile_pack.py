@@ -111,7 +111,16 @@ def pack(
         # but in some cases we wan't to use a path higher up.
         # base_dir_src,
         blendfile_src, blendfile_dst,
+
+        # the path to the top directory of the project's repository.
+        # the packed archive will reproduce the exact same hierarchy below that base path
+        # if set to None, it defaults to the given blendfile_src's directory.
+        # especially useful when used together with the warn_remap_externals option.
+        repository_base_path=None,
+
+        # type of archive to produce (either ZIP or plain usual directory).
         mode='ZIP',
+
         # optionally pass in the temp dir
         base_dir_dst_temp=None,
         paths_remap_relbase=None,
@@ -140,6 +149,8 @@ def pack(
         # do _everything_ except to write the paths.
         # useful if we want to calculate deps to remap but postpone applying them.
         readonly=False,
+        # Warn when we found a dependency external to given repository_base_path.
+        warn_remap_externals=False,
         # dict of binary_edits:
         # {file: [(ofs, bytes), ...], ...}
         # ... where the file is the relative 'packed' location.
@@ -201,7 +212,8 @@ def pack(
         import time
         t = time.time()
 
-    base_dir_src = os.path.dirname(blendfile_src)
+    base_dir_src = os.path.dirname(blendfile_src) if repository_base_path is None \
+                                                  else os.path.normpath(os.path.abspath(repository_base_path))
     base_dir_dst = os.path.dirname(blendfile_dst)
     # _dbg(blendfile_src)
     # _dbg(blendfile_dst)
@@ -350,6 +362,9 @@ def pack(
         path_rel = blendfile_path_walker.utils.compatpath(path_src_orig)
         path_src = blendfile_path_walker.utils.abspath(path_rel, fp.basedir)
         path_src = os.path.normpath(path_src)
+
+        if warn_remap_externals and b".." in os.path.relpath(path_src, base_dir_src):
+            yield report("  %s:   %r\n" % (colorize("non-local", color='bright_yellow'), path_src))
 
         if filename_filter and not filename_filter(path_src):
             yield report("  %s:     %r\n" % (colorize("exclude", color='yellow'), path_src))
