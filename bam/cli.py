@@ -1357,6 +1357,9 @@ class bam_commands:
         else:
             report = lambda msg: print(msg, end="")
 
+        if repository_base_path is not None:
+            repository_base_path = repository_base_path.encode('utf-8')
+
         # replace var with a pattern matching callback
         if filename_filter:
             # convert string into regex callback
@@ -1382,7 +1385,7 @@ class bam_commands:
                 output.encode('utf-8'),
                 mode=mode,
                 all_deps=all_deps,
-                repository_base_path=repository_base_path.encode('utf-8'),
+                repository_base_path=repository_base_path,
                 compress_level=compress_level,
                 report=report,
                 warn_remap_externals=warn_remap_externals,
