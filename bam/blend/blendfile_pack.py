@@ -519,6 +519,8 @@ def pack(
                 yield report("  %s: %r -> %r\n" % (colorize("copying", color='blue'), src, dst))
                 shutil.copy(src, dst)
 
+        shutil.rmtree(base_dir_dst_temp)
+
         yield report("  %s: %r\n" % (colorize("written", color='green'), blendfile_dst))
 
     elif mode == 'ZIP':
