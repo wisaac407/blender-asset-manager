@@ -502,9 +502,13 @@ def pack(
         shutil.move(blendfile_dst_tmp, blendfile_dst)
         path_temp_files.remove(blendfile_dst_tmp)
 
-        # strip TEMP_SUFFIX
+        # strip TEMP_SUFFIX and move to the destination directory.
         for fn in path_temp_files:
-            shutil.move(fn, fn[:-len(TEMP_SUFFIX)])
+            dst_rel, _ = _relpath_remap(fn[:-len(TEMP_SUFFIX)], base_dir_dst_temp, base_dir_dst, None)
+            dst = os.path.join(base_dir_dst, dst_rel)
+            yield report("  %s: %r -> %r\n" % (colorize("moving", color='blue'), fn, dst))
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.move(fn, dst)
 
         for src, dst in path_copy_files:
             assert(b'.blend' not in dst)
