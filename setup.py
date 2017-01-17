@@ -14,11 +14,9 @@ Bam Asset Manager is a tool to manage assets in Blender.
 requires = ['requests>=2.4']
 
 
-import bam
-
 setup(
     name='blender-bam',
-    version=bam.__version__,
+    version='1.0',
     url='http://developer.blender.org/project/view/55',
     download_url='https://pypi.python.org/pypi/blender-bam',
     license='GPLv2+',
