@@ -47,11 +47,11 @@ def _dbg(text):
 
 
 def _relpath_remap(
-        path_src,
-        base_dir_src,
-        fp_basedir,
-        blendfile_src_dir_fakeroot,
-        ):
+        path_src: str,
+        base_dir_src: str,
+        fp_basedir: str,
+        blendfile_src_dir_fakeroot: str=None,
+        ) -> (str, str):
 
     import os
 
