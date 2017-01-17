@@ -39,7 +39,7 @@ del os, sys, path
 # ... when internals _really_ fail & we want to know why
 def _dbg(text):
     import sys
-    from bam_utils.system import colorize
+    from bam.utils.system import colorize
     if type(text) is bytes:
         text = text.decode('utf-8')
     sys.__stdout__.write(colorize(text, color='red') + "\n")
