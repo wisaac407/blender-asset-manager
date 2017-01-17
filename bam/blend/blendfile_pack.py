@@ -342,7 +342,7 @@ def pack(
         fp_blend = os.path.join(fp.basedir, fp_blend_basename)
 
         if fp_blend_basename_last != fp_blend_basename:
-            yield report("  %s:       %s\n" % (colorize("blend", color='blue'), fp_blend))
+            yield report("  %s:       %r\n" % (colorize("blend", color='blue'), fp_blend))
             fp_blend_basename_last = fp_blend_basename
 
             if binary_edits is not None:
