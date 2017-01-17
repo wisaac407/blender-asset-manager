@@ -513,10 +513,8 @@ def pack(
             if (not os.path.exists(src)) or os.path.isdir(src):
                 yield report("  %s: %r\n" % (colorize("source missing", color='red'), src))
             else:
-                dst_dir = os.path.dirname(dst)
-                if not os.path.exists(dst_dir):
-                    os.makedirs(dst_dir)
                 yield report("  %s: %r -> %r\n" % (colorize("copying", color='blue'), src, dst))
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
                 shutil.copy(src, dst)
 
         shutil.rmtree(base_dir_dst_temp)
