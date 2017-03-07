@@ -44,9 +44,8 @@ setup(
         },
     entry_points={
         'console_scripts': [
-            'bam = bam:main',
+            'bam = bam.cli:main',
         ],
     },
     install_requires=requires,
 )
-
