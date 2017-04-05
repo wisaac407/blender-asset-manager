@@ -37,10 +37,6 @@ del path
 import logging
 log = logging.getLogger("bam_cli")
 
-# if we're a module, don't mess with logging level
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-
 
 def fatal(msg):
     if __name__ == "__main__":
