@@ -2015,6 +2015,11 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)-15s %(levelname)8s %(name)s %(message)s',
+    )
+
     parser = create_argparse()
     args = parser.parse_args(argv)
 
