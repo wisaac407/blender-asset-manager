@@ -1,0 +1,7 @@
+# Primary requirements
+requests==2.11.1
+svn==0.3.40
+
+# Secondary requirements (pulled in from the primaries)
+python-dateutil==2.2
+six==1.10.0
