@@ -143,6 +143,9 @@ class BlendFile:
         # cache (could lazy init, incase we never use?)
         self.block_from_offset = {block.addr_old: block for block in self.blocks if block.code != b'ENDB'}
 
+    def __repr__(self):
+        return '<%s %r>' % (self.__class__.__qualname__, self.handle)
+
     def __enter__(self):
         return self
 
