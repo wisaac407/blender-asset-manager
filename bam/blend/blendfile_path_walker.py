@@ -72,8 +72,7 @@ if VERBOSE:
     def set_as_str(s):
         if s is None:
             return "None"
-        else:
-            return (", ".join(sorted(i.decode('ascii') for i in sorted(s))))
+        return ", ".join(sorted(str(i) for i in s))
 
 
 class FPElem:
