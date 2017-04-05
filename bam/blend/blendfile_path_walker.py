@@ -819,6 +819,7 @@ class ExpandID:
             yield block.get_pointer(b'dup_group')
         elif block_ren_as == C_defs.PART_DRAW_OB:
             yield block.get_pointer(b'dup_ob')
+        yield from ExpandID._expand_generic_mtex(block)
 
     @staticmethod
     def expand_SC(block):  # 'Scene'
