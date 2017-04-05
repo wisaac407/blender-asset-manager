@@ -16,7 +16,7 @@ requires = ['requests>=2.4']
 
 setup(
     name='blender-bam',
-    version='1.1.2',
+    version='1.1.3',
     url='http://developer.blender.org/project/view/55',
     download_url='https://pypi.python.org/pypi/blender-bam',
     license='GPLv2+',
