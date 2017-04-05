@@ -19,6 +19,8 @@
 # ***** END GPL LICENCE BLOCK *****
 
 import os
+from . import blendfile
+
 # gives problems with scripts that use stdout, for testing 'bam deps' for eg.
 VERBOSE = False  # os.environ.get('BAM_VERBOSE', False)
 TIMEIT = False
@@ -395,7 +397,6 @@ class FilePath:
         # store info to pass along with each iteration
         extra_info = rootdir, os.path.basename(filepath)
 
-        from . import blendfile
         with blendfile.open_blend(filepath_tmp, "rb" if readonly else "r+b") as blend:
 
             for code in blend.code_index.keys():
@@ -508,7 +509,7 @@ class FilePath:
     # (no expanding or following references)
 
     @staticmethod
-    def from_block(block, basedir, extra_info, level):
+    def from_block(block: blendfile.BlendFileBlock, basedir, extra_info, level):
         assert(block.code != b'DATA')
         fn = FilePath._from_block_dict.get(block.code)
         if fn is not None:
