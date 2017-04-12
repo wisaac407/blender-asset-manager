@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = '1.1.3'
+__version__ = '1.1.4'
 
 if __name__ == '__main__':
     from .cli import main
