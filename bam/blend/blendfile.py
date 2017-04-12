@@ -30,6 +30,10 @@ log = logging.getLogger("blendfile")
 FILE_BUFFER_SIZE = 1024 * 1024
 
 
+class BlendFileError(Exception):
+    """Raised when there was an error reading/parsing a blend file."""
+
+
 # -----------------------------------------------------------------------------
 # module global routines
 #
@@ -73,9 +77,9 @@ def open_blend(filename, access="rb"):
             bfile.filepath_orig = filename
             return bfile
         else:
-            raise Exception("filetype inside gzip not a blend")
+            raise BlendFileError("filetype inside gzip not a blend")
     else:
-        raise Exception("filetype not a blend or a gzip blend")
+        raise BlendFileError("filetype not a blend or a gzip blend")
 
 
 def pad_up_4(offset):
@@ -143,7 +147,7 @@ class BlendFile:
         self.blocks.append(block)
 
         if not self.structs:
-            raise Exception("No DNA1 block in file, this is not a valid .blend file!")
+            raise BlendFileError("No DNA1 block in file, this is not a valid .blend file!")
 
         # cache (could lazy init, incase we never use?)
         self.block_from_offset = {block.addr_old: block for block in self.blocks if block.code != b'ENDB'}
