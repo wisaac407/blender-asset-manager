@@ -18,18 +18,19 @@
 #
 # ***** END GPL LICENCE BLOCK *****
 
+import os
+import sys
+import shutil
 from bam.blend import blendfile_path_walker
 
 TIMEIT = False
 
 # ------------------
 # Ensure module path
-import os
-import sys
 path = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "modules"))
 if path not in sys.path:
     sys.path.append(path)
-del os, sys, path
+del path
 # --------
 
 
@@ -38,7 +39,6 @@ del os, sys, path
 #
 # ... when internals _really_ fail & we want to know why
 def _dbg(text):
-    import sys
     from bam.utils.system import colorize
     if type(text) is bytes:
         text = text.decode('utf-8')
@@ -52,8 +52,6 @@ def _relpath_remap(
         fp_basedir: str,
         blendfile_src_dir_fakeroot: str=None,
         ) -> (str, str):
-
-    import os
 
     if not os.path.isabs(path_src):
         # Absolute win32 paths on a unix system
@@ -176,9 +174,6 @@ def pack(
     # - we track which libs we have touched (using 'lib_visit' arg),
     #   this means that the same libs wont be touched many times to modify the same data
     #   also prevents cyclic loops from crashing.
-
-    import os
-    import sys
 
     if sys.stdout.isatty():
         from bam.utils.system import colorize
@@ -504,7 +499,6 @@ def pack(
     # Handle File Copy/Zip
 
     if mode == 'FILE':
-        import shutil
         blendfile_dst_tmp = temp_remap_cb(blendfile_src, base_dir_src)
 
         shutil.move(blendfile_dst_tmp, blendfile_dst)
@@ -534,7 +528,6 @@ def pack(
         yield report("  %s: %r\n" % (colorize("written", color='green'), blendfile_dst))
 
     elif mode == 'ZIP':
-        import shutil
         import zipfile
 
         # not awesome!
@@ -585,7 +578,6 @@ def pack(
 
 
 def create_argparse():
-    import os
     import argparse
 
     usage_text = (
