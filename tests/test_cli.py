@@ -16,9 +16,11 @@ Run a single test:
 import argparse
 import json
 import os
+from pathlib import Path
 import shutil
 import sys
 import unittest
+import unittest.mock
 
 VERBOSE = os.environ.get("VERBOSE", False)
 if VERBOSE == "0":
@@ -1764,6 +1766,30 @@ class BamRemapTest(BamSimpleTestCase):
         self.assertEqual(ret[0][3], "OK")
         self.assertEqual(ret[1][1], "//" + os.path.join("..", "..", "..", "..", images[1][1]))
         self.assertEqual(ret[1][3], "OK")
+
+
+class BamDepsTest(unittest.TestCase):
+    @unittest.mock.patch('bam.cli.print')
+    def test_abc_cache_modifier(self, mock_print):
+        from bam.cli import bam_commands
+
+        printed = []
+
+        def record_print(*stuff, sep=' ', end='\n'):
+            printed.append(sep.join(stuff) + end)
+
+        mock_print.side_effect = record_print
+
+        blendpath = Path(__file__).absolute().parent / 'blends' / 'cube-rotating.blend'
+        bam_commands.deps([str(blendpath)], recursive=False, use_json=True)
+
+        output = json.loads(''.join(printed))
+        self.assertEqual([[
+            str(blendpath),
+            '//cube-rotating.abc',
+            str(blendpath.with_name('cube-rotating.abc')),
+            'OK'
+        ]], output)
 
 
 if __name__ == '__main__':
