@@ -47,11 +47,11 @@ def _dbg(text):
 
 
 def _relpath_remap(
-        path_src: str,
-        base_dir_src: str,
-        fp_basedir: str,
-        blendfile_src_dir_fakeroot: str=None,
-        ) -> (str, str):
+        path_src,
+        base_dir_src,
+        fp_basedir,
+        blendfile_src_dir_fakeroot=None,
+        ):
 
     if not os.path.isabs(path_src):
         # Absolute win32 paths on a unix system
@@ -180,14 +180,19 @@ def pack(
     else:
         from bam.utils.system import colorize_dummy as colorize
 
+    assert isinstance(blendfile_src, bytes)
+    assert isinstance(blendfile_dst, bytes)
+
     # in case this is directly from the command line or user-input
     blendfile_src = os.path.normpath(os.path.abspath(blendfile_src))
     blendfile_dst = os.path.normpath(os.path.abspath(blendfile_dst))
+    assert blendfile_src != blendfile_dst
 
     # first check args are OK
     # fakeroot _cant_ start with a separator, since we prepend chars to it.
-    assert((blendfile_src_dir_fakeroot is None) or
-           (not blendfile_src_dir_fakeroot.startswith(os.sep.encode('ascii'))))
+    if blendfile_src_dir_fakeroot is not None:
+        assert isinstance(blendfile_src_dir_fakeroot, bytes)
+        assert not blendfile_src_dir_fakeroot.startswith(os.sep.encode('ascii'))
 
     path_temp_files = set()
     path_copy_files = set()
@@ -212,6 +217,7 @@ def pack(
     base_dir_dst = os.path.dirname(blendfile_dst)
     # _dbg(blendfile_src)
     # _dbg(blendfile_dst)
+    assert base_dir_src != base_dir_dst
 
     if base_dir_dst_temp is None:
         # Always try to pack using a unique folder name.
@@ -407,6 +413,7 @@ def pack(
         # add to copy-list
         # never copy libs (handled separately)
         if not isinstance(fp, blendfile_path_walker.FPElem_block_path) or fp.userdata[0].code != b'LI':
+            assert path_src != path_dst
             path_copy_files.add((path_src, path_dst))
 
             for file_list in (
@@ -514,6 +521,7 @@ def pack(
 
         for src, dst in path_copy_files:
             assert(b'.blend' not in dst)
+            assert src != dst
 
             # in rare cases a filepath could point to a directory
             if (not os.path.exists(src)) or os.path.isdir(src):
@@ -590,13 +598,17 @@ def create_argparse():
             help="Input path(s) or a wildcard to glob many files",
             )
     parser.add_argument(
+            "-e", "--exclude", dest="exclude", metavar='PATTERN', required=False,
+            help='Exclusion pattern, such as "*.abc;*.mov;*.mkv"')
+    parser.add_argument(
             "-o", "--output", dest="path_dst", metavar='DIR', required=True,
-            help="Output file or a directory when multiple inputs are passed",
+            help="Output file (must be a .blend for --mode=FILE or a .zip when --mode=ZIP), "
+                 "or a directory when multiple inputs are passed",
             )
     parser.add_argument(
             "-m", "--mode", dest="mode", metavar='MODE', required=False,
             choices=('FILE', 'ZIP'), default='ZIP',
-            help="Output file or a directory when multiple inputs are passed",
+            help="FILE copies the blend file(s) + dependencies to a directory, ZIP to an archive.",
             )
     parser.add_argument(
             "-q", "--quiet", dest="use_quiet", action='store_true', required=False,
@@ -604,17 +616,40 @@ def create_argparse():
             )
     parser.add_argument(
             "-t", "--temp", dest="temp_path", metavar='DIR', required=False,
-            help="Temporary directory to use",
+            help="Temporary directory to use. When not supplied, a unique directory is used.",
             )
 
     return parser
 
 
-def main():
-    import sys
+def exclusion_filter(exclude: str):
+    """Converts a filter string "*.abc;*.def" to a function that can be passed to pack().
 
+    If 'exclude' is None or an empty string, returns None (which means "no filtering").
+    """
+
+    if not exclude:
+        return None
+
+    import re
+    import fnmatch
+
+    # convert string into regex callback that operates on bytes
+    # "*.txt;*.png;*.rst" --> rb".*\.txt$|.*\.png$|.*\.rst$"
+    pattern = b'|'.join(fnmatch.translate(f).encode('utf-8')
+                        for f in exclude.split(';')
+                        if f)
+    compiled_pattern = re.compile(pattern, re.IGNORECASE)
+
+    def filename_filter(fname: bytes):
+        return not compiled_pattern.match(fname)
+
+    return filename_filter
+
+
+def main():
     parser = create_argparse()
-    args = parser.parse_args(sys.argv[1:])
+    args = parser.parse_args()
 
     if args.use_quiet:
         def report(msg):
@@ -625,12 +660,11 @@ def main():
             sys.stdout.flush()
 
     for msg in pack(
-            args.path_src.encode('utf-8'),
-            args.path_dst.encode('utf-8'),
+            args.path_src.encode('utf8'),
+            args.path_dst.encode('utf8'),
             mode=args.mode,
-            base_dir_dst_temp=(
-                args.temp_path.encode('utf-8')
-                if args.temp_path else None),
+            base_dir_dst_temp=args.temp_path,
+            filename_filter=exclusion_filter(args.exclude),
             ):
         report(msg)
 

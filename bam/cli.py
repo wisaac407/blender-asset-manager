@@ -1357,24 +1357,7 @@ class bam_commands:
             repository_base_path = repository_base_path.encode('utf-8')
 
         # replace var with a pattern matching callback
-        if filename_filter:
-            # convert string into regex callback
-            # "*.txt;*.png;*.rst" --> r".*\.txt$|.*\.png$|.*\.rst$"
-            import re
-            import fnmatch
-
-            compiled_pattern = re.compile(
-                    b'|'.join(fnmatch.translate(f).encode('utf-8')
-                              for f in filename_filter.split(";") if f),
-                    re.IGNORECASE,
-                    )
-
-            def filename_filter(f):
-                return (not filename_filter.compiled_pattern.match(f))
-            filename_filter.compiled_pattern = compiled_pattern
-
-            del compiled_pattern
-            del re, fnmatch
+        filename_filter_cb = blendfile_pack.exclusion_filter(filename_filter)
 
         for msg in blendfile_pack.pack(
                 path.encode('utf-8'),
@@ -1386,7 +1369,7 @@ class bam_commands:
                 report=report,
                 warn_remap_externals=warn_remap_externals,
                 use_variations=True,
-                filename_filter=filename_filter,
+                filename_filter=filename_filter_cb,
                 ):
             pass
 
