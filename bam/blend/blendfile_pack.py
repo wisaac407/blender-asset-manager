@@ -580,12 +580,9 @@ def pack(
 def create_argparse():
     import argparse
 
-    usage_text = (
-        "Run this script to extract blend-files(s) to a destination path:" +
-        os.path.basename(__file__) +
-        "--input=FILE --output=FILE [options]")
-
-    parser = argparse.ArgumentParser(description=usage_text)
+    parser = argparse.ArgumentParser(
+        description="Run this script to extract blend-files(s) and their dependencies "
+                    "to a destination path.")
 
     # for main_render() only, but validate args.
     parser.add_argument(
