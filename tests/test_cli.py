@@ -13,7 +13,13 @@ Run a single test:
    python3 -m unittest test_cli.BamCheckoutTest.test_checkout
 """
 
+import argparse
+import json
 import os
+import shutil
+import sys
+import unittest
+
 VERBOSE = os.environ.get("VERBOSE", False)
 if VERBOSE == "0":
     VERBOSE = None
@@ -24,23 +30,19 @@ if VERBOSE:
 
 # ------------------
 # Ensure module path
-import os
-import sys
 path = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 if path not in sys.path:
     sys.path.append(path)
-del os, sys, path
+del path
 # --------
 
 
 # ------------------
 # Ensure module path
-import os
-import sys
 path = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "webservice", "bam"))
 if path not in sys.path:
     sys.path.append(path)
-del os, sys, path
+del path
 # --------
 
 
@@ -64,8 +66,6 @@ if not VERBOSE:
 # So override `sys.exit` with one that prints to the original
 # stdout/stderr on exit.
 if 1:
-    import sys
-
     def exit(status):
         import io
         globals().update(sys.exit.exit_data)
@@ -91,7 +91,6 @@ if 1:
         }
     sys.exit = exit
     del exit
-    del sys
 # --------
 
 # --------------------------------------------
@@ -103,7 +102,6 @@ if 1:
 # This monkey-patches in an exist function which simply raises an exception.
 # We could do something a bit nicer here,
 # but for now just use a basic exception.
-import argparse
 
 
 def argparse_fake_exit(self, status, message):
@@ -112,17 +110,11 @@ def argparse_fake_exit(self, status, message):
 
 argparse.ArgumentParser.exit = argparse_fake_exit
 del argparse_fake_exit
-del argparse
 # --------
 
 
 # ----------------------------------------------------------------------------
 # Real beginning of code!
-
-import os
-import sys
-import shutil
-import json
 
 TEMP_LOCAL = "/tmp/bam_test"
 # Separate tmp directory for server, since we don't reset the server at every test
@@ -261,25 +253,21 @@ def bam_run_as_json(argv, cwd=None):
     stdout, stderr = bam_run(argv, cwd=cwd)
     if stderr:
         raise Exception(stderr)
-        return None
 
-    ret = None
-
-    import json
     try:
-        ret = json.loads(stdout)
+        return json.loads(stdout)
     except Exception as e:
         print("---- JSON BEGIN (invalid) ----")
         print(stdout)
         print("---- JSON END ----")
         raise e
-    return ret
 
 
 def file_quick_write(path, filepart=None, data=None, append=False):
     """
     Quick file creation utility.
     """
+
     if data is None:
         data = b''
 
@@ -578,8 +566,6 @@ def global_teardown(data, use_server=True):
 
 # ------------------------------------------------------------------------------
 # Unit Tests
-
-import unittest
 
 
 class BamSimpleTestCase(unittest.TestCase):
@@ -882,7 +868,6 @@ class BamCheckoutTest(BamSessionTestCase):
         variation_path = os.path.join(session_path, "variations")
 
         if 1:
-            import shutil
             # path cant already exist, ugh
             shutil.copytree(
                     os.path.join(CURRENT_DIR, "blends", "variations"),
@@ -1003,7 +988,6 @@ class BamCheckoutTest(BamSessionTestCase):
                 blendfile, images)
 
         # we are going to remove the maps directory, getting bam to handle a missing path
-        import shutil
         shutil.rmtree(os.path.join(session_path, "maps"))
 
         # commit and checkout
@@ -1121,7 +1105,6 @@ class BamRevertTest(BamSessionTestCase):
 
         os.makedirs(os.path.join(session_path, "dir"))
         # just a way to quickly get a lot of files.
-        import shutil
         for d in ("abs", "subdir"):
             # path cant already exist, ugh
             shutil.copytree(
@@ -1520,7 +1503,6 @@ class BamRelativeAbsoluteTest(BamSessionTestCase):
         proj_path, session_path = self.init_session(session_name)
 
         if 1:
-            import shutil
             for d in ("abs", "subdir"):
                 # path cant already exist, ugh
                 shutil.copytree(
@@ -1537,7 +1519,6 @@ class BamRelativeAbsoluteTest(BamSessionTestCase):
         Same as test_absolute_relative_from_blendfiles(),
         but start from a single file commit
         """
-        import shutil
 
         session_name = "mysession"
         proj_path, session_path = self.init_session(session_name)
@@ -1551,7 +1532,6 @@ class BamRelativeAbsoluteTest(BamSessionTestCase):
 
         if not blendfile_template_create(blendfile_abs, session_path, "create_blank", None, []):
             self.fail("blend file couldn't be created")
-            return
         self.assertTrue(os.path.exists(blendfile_abs))
 
         stdout, stderr = bam_run(["commit", "-m", "test message"], session_path)
@@ -1566,7 +1546,6 @@ class BamRelativeAbsoluteTest(BamSessionTestCase):
         # they must now map back to the correct paths.
 
         if 1:
-            import shutil
             shutil.copytree(
                     os.path.join(CURRENT_DIR, "blends", "multi_level", "abs", "path"),
                     os.path.join(session_path, "_abs", "path"),
@@ -1615,7 +1594,6 @@ class BamRelativeAbsoluteTest(BamSessionTestCase):
 
         blendfile = os.path.join("root", "level1", "level2", "level3", "level3.blend")
 
-        import shutil
         shutil.copytree(
                 os.path.join(CURRENT_DIR, "blends", "multi_level_link"),
                 os.path.join(session_path, "root"),
@@ -1673,7 +1651,6 @@ class BamIgnoreTest(BamSessionTestCase):
         # create some files
         file_quick_write(session_path, file_name, file_data)
 
-        import os
         subdir_path = os.path.join(session_path, "subdirectory")
         os.makedirs(subdir_path)
         file_quick_write(subdir_path, "testfile.blend1", file_data)
