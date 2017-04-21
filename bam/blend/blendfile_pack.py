@@ -219,10 +219,18 @@ def pack(
     # _dbg(blendfile_dst)
 
     if base_dir_dst_temp is None:
-        if mode == 'ZIP':
-            base_dir_dst_temp = os.path.join(base_dir_dst, b'__blendfile_temp__')
-        else:
-            base_dir_dst_temp = os.path.join(base_dir_dst, b'__blendfile_pack__')
+        # Always try to pack using a unique folder name.
+        import uuid
+
+        suf = 'temp' if mode == 'ZIP' else 'pack'
+
+        while True:
+            unique = uuid.uuid4().hex
+            name = '__blendfile_%s_%s__' % (unique, suf)
+            base_dir_dst_temp = os.path.join(base_dir_dst, name.encode('ascii'))
+
+            if not os.path.exists(base_dir_dst_temp):
+                break
 
     def temp_remap_cb(filepath, rootdir):
         """
